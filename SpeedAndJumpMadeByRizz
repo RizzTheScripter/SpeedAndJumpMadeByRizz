@@ -1,0 +1,169 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "SpeedJumpGUI"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 220, 0, 180)
+frame.Position = UDim2.new(0.7, 0, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+frame.BackgroundTransparency = 0.05
+frame.Active = true
+frame.Draggable = true
+frame.ClipsDescendants = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -30, 0, 20)
+title.Position = UDim2.new(0, 5, 0, 2)
+title.BackgroundTransparency = 1
+title.Text = "Run & Jump Controller"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local minimize = Instance.new("TextButton", frame)
+minimize.Size = UDim2.new(0, 20, 0, 20)
+minimize.Position = UDim2.new(1, -25, 0, 2)
+minimize.Text = "-"
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 16
+minimize.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+minimize.TextColor3 = Color3.new(1,1,1)
+
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(0, 80, 0, 25)
+toggle.Position = UDim2.new(0.05, 0, 0.2, 0)
+toggle.Text = "ON"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 14
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+
+local label = Instance.new("TextLabel", frame)
+label.Size = UDim2.new(1, 0, 0, 20)
+label.Position = UDim2.new(0, 0, 1, -20)
+label.BackgroundTransparency = 1
+label.Text = "MadeByRizz"
+label.TextColor3 = Color3.new(1,1,1)
+label.Font = Enum.Font.Gotham
+label.TextSize = 12
+
+local notify = Instance.new("TextLabel", frame)
+notify.Size = UDim2.new(1, -10, 0, 20)
+notify.Position = UDim2.new(0, 5, 1, -45)
+notify.BackgroundTransparency = 1
+notify.TextColor3 = Color3.fromRGB(255, 100, 100)
+notify.Font = Enum.Font.GothamBold
+notify.TextSize = 13
+notify.Text = ""
+notify.Visible = false
+
+local function makeInput(name, default, y)
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(1, -20, 0, 20)
+	label.Position = UDim2.new(0, 10, 0, y)
+	label.BackgroundTransparency = 1
+	label.Text = name .. ": " .. default
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 13
+
+	local input = Instance.new("TextBox", frame)
+	input.Size = UDim2.new(0, 80, 0, 20)
+	input.Position = UDim2.new(0.55, 0, 0, y)
+	input.Text = tostring(default)
+	input.Font = Enum.Font.Gotham
+	input.TextSize = 13
+	input.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+	input.TextColor3 = Color3.new(1,1,1)
+	input.ClearTextOnFocus = true
+
+	return input, label
+end
+
+local speedInput, speedLabel = makeInput("Speed", 16, 60)
+local jumpInput, jumpLabel = makeInput("Jump", 50, 90)
+
+local MAX_SPEED = 500
+local MAX_JUMP = 750
+local isActive = false
+
+local function getHumanoid()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hum = char:WaitForChild("Humanoid")
+	hum.UseJumpPower = true
+	return hum
+end
+
+local function applyStats()
+	local inputSpeed = tonumber(speedInput.Text) or 16
+	local inputJump = tonumber(jumpInput.Text) or 50
+
+	local speed = math.clamp(inputSpeed, 0, MAX_SPEED)
+	local jump = math.clamp(inputJump, 0, MAX_JUMP)
+
+	-- Tampilkan kembali nilai yang dikunci
+	speedInput.Text = tostring(speed)
+	jumpInput.Text = tostring(jump)
+
+	speedLabel.Text = "Speed: " .. speed
+	jumpLabel.Text = "Jump: " .. jump
+
+	if inputSpeed > MAX_SPEED or inputJump > MAX_JUMP then
+		notify.Text = "Limit Number!"
+		notify.Visible = true
+	else
+		notify.Visible = false
+	end
+
+	local hum = getHumanoid()
+	hum.WalkSpeed = isActive and speed or 16
+	hum.JumpPower = isActive and jump or 50
+end
+
+toggle.MouseButton1Click:Connect(function()
+	isActive = not isActive
+	toggle.Text = isActive and "OFF" or "ON"
+	toggle.BackgroundColor3 = isActive and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(0, 170, 255)
+	applyStats()
+end)
+
+speedInput.FocusLost:Connect(applyStats)
+jumpInput.FocusLost:Connect(applyStats)
+
+-- Maximize Minimize Jelly Effect
+local minimized = false
+local originalSize = UDim2.new(0, 220, 0, 180)
+local jellySize = UDim2.new(0, 260, 0, 200)
+
+minimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	if minimized then
+		frame.Draggable = false
+		for _, obj in ipairs(frame:GetChildren()) do
+			if obj ~= minimize then obj.Visible = false end
+		end
+		frame:TweenSize(UDim2.new(0, 50, 0, 20), "Out", "Quad", 0.2, true)
+		minimize.Text = "+"
+	else
+		frame:TweenSize(jellySize, "Out", "Quad", 0.2, true)
+		task.delay(0.2, function()
+			local back = TweenService:Create(frame, TweenInfo.new(0.2), {Size = originalSize})
+			back:Play()
+			back.Completed:Wait()
+			for _, obj in ipairs(frame:GetChildren()) do obj.Visible = true end
+			frame.Draggable = true
+			minimize.Text = "-"
+		end)
+	end
+end)
+
+-- Apply on reset
+Players.LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+	applyStats()
+end)
